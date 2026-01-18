@@ -1,5 +1,5 @@
 # Nexus
-The word /nexus/ comes from latin meaning "a binding together".
+The word *nexus* comes from latin meaning "a binding together".
 
 This configuration aims to be exactly that: A binding between all aspects of work, creativity, and exploration, unified within emacs.
 

@@ -1,0 +1,170 @@
+* Intro :TODO:
+
+This configuration is totaly comprised inside this org file using the org-babel tangle funcitonality.
+
+When first cloning this repo you'll need to tangle the files yourselves using <keymap> to instantiate the config. After that, you'll be able to browse around the config code.
+
+If you'd like it is possible to remove this file after it's been tangled, or you can keep editing through the org file. Though, keep in mind if you do keep this org file present, all config changes will need to be made through this file.
+
+** Navigation :TODO:
+
+Navigating through this file is done through the following keybinds:
+<keybind list>
+
+There is also a custom minor mode =config-mode= (adapted from [[github:rougier/dotemacs][rougier]]) which implements a sidebar that acts as an outline for better navigation. This becomes available after the config has been tangled and Emacs restarted.
+
+* Core
+
+** early-init
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle "early-init.el" :eval no
+:END:
+
+This tangles to the =./early-init.el=  file. It will be loaded /before/ emacs reaches the init stage.
+
+#+BEGIN_SRC emacs-lisp
+;; early-init.el -*- lexical-binding: t; -*-
+
+(setq
+ site-run-file nil                         ; No site-wide run-time initializations.
+ inhibit-default-init t                    ; No site-wide default library
+ gc-cons-threshold most-positive-fixnum    ; Very large threshold for garbage
+                                           ; collector during init
+ package-enable-at-startup nil)            ; We'll use straight.el
+
+(setq native-comp-eln-load-path
+      (list (expand-file-name "eln-cache" user-emacs-directory)))
+
+;; Reset garbage collector limit after init process has ended (8Mo)
+(add-hook 'after-init-hook
+          #'(lambda () (setq gc-cons-threshold (* 8 1024 1024))))
+#+END_SRC
+
+** Package Management
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle "init.el" :eval no
+:END:
+
+*Nexus* uses =straight.el= for package management. We also disable auto checking for improved performance.
+
+This section will be tangled into =./init.el=
+
+#+BEGIN_SRC emacs-lisp
+;; init.el -*- lexical-binding: t; -*-
+
+;; disables checking for speed
+(setq straight-check-for-modifications nil)
+
+;; bootstraps straight.el
+(defvar bootstrap-version)
+(let ((bootstrap-file
+       (expand-file-name
+        "straight/repos/straight.el/bootstrap.el"
+        (or (bound-and-true-p straight-base-dir)
+            user-emacs-directory)))
+      (bootstrap-version 7))
+  (unless (file-exists-p bootstrap-file)
+    (with-current-buffer
+        (url-retrieve-synchronously
+         "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+         'silent 'inhibit-cookies)
+      (goto-char (point-max))
+      (eval-print-last-sexp)))
+  (load bootstrap-file nil 'nomessage))
+
+;; installs use-package
+(straight-use-package 'use-package)
+
+;; makes use-package enable straight by default
+(setq straight-use-package-by-default t)
+
+#+END_SRC
+
+We also need to load in the paths for package configuration and themes
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path
+             (expand-file-name "lisp" user-emacs-directory))
+(add-to-list 'custom-theme-load-path
+             (expand-file-name "theme" user-emacs-directory))
+
+(require 'packages)
+#+END_SRC
+
+And make these paths (if they don't exist)
+
+#+BEGIN_SRC emacs-lisp :tangle no :eval yes :results none
+(make-directory (expand-file-name "lisp" user-emacs-directory) t)
+(make-directory (expand-file-name "theme" user-emacs-directory) t)
+#+END_SRC
+
+** Package Loading :TODO:
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle "lisp/packages.el" :eval no
+:END:
+
+Packages will typically be grouped together in /"modules"/. These modules will need to be loaded in through a central file =lisp/packages.el=.
+
+Each one of the modules can also be conditionally loaded from here, if desired.
+
+#+BEGIN_SRC emacs-lisp
+;;; lisp/packages.el -*- lexical-binding: t; -*-
+
+;; add lisp/packages directory to load path
+(add-to-list 'load-path (expand-file-name "packages" (file-name-directory load-file-name)))
+
+;; load modules
+(require 'evil-module)
+
+(provide 'packages)
+#+END_SRC
+
+We will also need to create the packages directory
+
+#+BEGIN_SRC emacs-lisp :tangle no :eval yes :results none
+(make-directory (expand-file-name "lisp/packages" user-emacs-directory) t)
+#+END_SRC
+
+* UI :TODO:
+
+* Editor :TODO:
+
+** Evil :TODO:
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle "lisp/packages/evil-module.el" :eval no
+:END:
+
+=evil= is heavily used throughout *Nexus*. Vim keybinds are superior when it comes to ergonomics and text manipulation in my opinion.
+
+First, we initialize the base package
+
+#+BEGIN_SRC emacs-lisp
+;;; lisp/packages/evil.el -*- lexical-binding: t; -*-
+
+(use-package evil
+  :init
+  ;; set these before evil is loaded
+  (setq evil-want-keybinding nil)
+  (setq evil-want-C-u-scroll t)
+  (setq evil-undo-system 'undo-tree)
+  :config
+  (evil-mode 1)
+  (evil-set-leader '(normal visual motion) (kbd "SPC")))
+
+#+END_SRC
+
+Next, we need to setup the =evil-collection= package. This is used to set vim keybinds in other packages
+
+#+BEGIN_SRC emacs-lisp
+(use-package evil-collection
+  :defer 0      ;; defers loading until after init (essentially lazy laoding)
+  :config
+  (evil-collection-init))
+
+#+END_SRC
+
+Finally, we need to provide the module so it can be loaded by =lisp/packages.el=
+
+#+begin_src emacs-lisp
+(provide 'evil-module)
+#+end_src
