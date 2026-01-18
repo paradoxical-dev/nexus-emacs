@@ -31,4 +31,5 @@
 (add-to-list 'custom-theme-load-path
              (expand-file-name "theme" user-emacs-directory))
 
+(require 'core)
 (require 'packages)

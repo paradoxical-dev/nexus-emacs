@@ -91,6 +91,7 @@ We also need to load in the paths for package configuration and themes
 All thats left is to then require the differet sections
 
 #+begin_src emacs-lisp
+(require 'core)
 (require 'packages)
 #+end_src
 
@@ -259,13 +260,19 @@ Remove any duplicates
 
 #+end_src
 
-And finally, start history mode
+And start history mode
 
 #+begin_src emacs-lisp
 (let (message-log-max)
   (savehist-mode))
+
 #+end_src
 
+Finally, we need to provide the =core.el= file so it can be loaded from within [[file:init.el][init.el]].
+
+#+begin_src emacs-lisp
+(provide 'core)
+#+end_src
 
 * UI :TODO:
 
