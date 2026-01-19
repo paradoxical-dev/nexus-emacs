@@ -119,6 +119,7 @@ Each one of the modules can also be conditionally loaded from here, if desired.
 
 ;; load modules
 (require 'evil-module)
+(require 'conpletion-module)
 
 #+END_SRC
 
@@ -332,7 +333,7 @@ Much of this code was adapted from rougier's literate config [[github:rougier/do
 
 Completion is a crucial part of any IDE. Its not only the information thats given, but how it is presented.
 
-For this, *Nexus* uses a mixture of [[github:minad/corfu][corfu]] with [[github:minad/cape][cape]], and [[github:minad/vertico][vertico]] with /orderless completion/. This handles the completion backend that gets used throughout.
+For this, *Nexus* uses a mixture of [[github:minad/corfu][corfu]] with [[github:minad/cape][cape]]. This handles the completion backend that gets used throughout.
 
 *** Corfu
 
@@ -391,6 +392,68 @@ Corfu also offers a package for compatibility with the terminal. We'll only need
 
 *** Cape
 
+Cape allows us to extend the completion backends by using the provided functions to extend the capf list.
 
+#+begin_src emacs-lisp
+(use-package cape
+  :ensure t
+  :init
+  ;; Add file completions to prog modes
+  (add-hook 'prog-mode-hook
+            (lambda ()
+              (add-hook 'completion-at-point-functions #'cape-file -10 t)))
+
+  ;; Add dabbrev globally
+  (setq cape-dabbrev-check-other-buffers t)
+  (dolist (hook '(prog-mode-hook
+                  text-mode-hook
+                  conf-mode-hook
+                  comint-mode-hook
+                  minibuffer-setup-hook
+                  eshell-mode-hook))
+    (add-hook hook
+              (lambda ()
+                (add-hook 'completion-at-point-functions #'cape-dabbrev 20 t))))
+
+  ;; Make sure lsp suggesstions are noninterruptible
+  (advice-add #'lsp-completion-at-point :around #'cape-wrap-noninterruptible)
+  (advice-add #'lsp-completion-at-point :around #'cape-wrap-nonexclusive)
+  (advice-add #'eglot-completion-at-point :around #'cape-wrap-nonexclusive)
+  (advice-add #'comint-completion-at-point :around #'cape-wrap-nonexclusive)
+  (advice-add #'pcomplete-completions-at-point :around #'cape-wrap-nonexclusive)
+
+  ;; Latex QoL
+  (add-hook 'latex-mode-hook
+            (lambda ()
+              (setq-local cape-file-prefix "{")))
+  (add-hook 'LaTeX-mode-hook
+            (lambda ()
+              (setq-local cape-file-prefix "{"))))
+
+#+end_src
+
+Finally we just need to provide the file
+
+#+begin_src emacs-lisp
+(provide 'completion-module)
+#+end_src
+
+
+** Search
+:PROPERTIES:
+:header-args:emacs-lisp: :tangle "lisp/packages/search-module.el" :eval no
+:END:
+
+Searching and filtering in *Nexus* is aided through the use of [[github:minad/vertico][vertico]] and [[github:minat/consult][consult]], with vertico acting as the frontend and consult as the backend.
 
 *** Vertico
+
+Vertico creates the UI needed for any kind of builtin or external searching and filtering.
+
+#+begin_src emacs-lisp
+(use-package vertico
+
+)
+#+end_src
+
+*** Consult
